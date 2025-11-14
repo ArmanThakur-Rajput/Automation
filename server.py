@@ -1,66 +1,44 @@
 from fastapi import FastAPI, Request
 import requests
-
-app = FastAPI()
-
-
-
-from fastapi import FastAPI, Request
-import requests
 import os
 
 app = FastAPI()
 
+# Load environment variables safely
+WHATSAPP_TOKEN = os.getenv("WHATSAPP_TOKEN")
+VERIFY_TOKEN = os.getenv("VERIFY_TOKEN", "myverifytoken")
+PHONE_NUMBER_ID = os.getenv("PHONE_NUMBER_ID")
 
-
-VERIFY_TOKEN = os.getenv("VERIFY_TOKEN", "myverifytoken")  # fallback if not set
-WHATSAPP_TOKEN = os.getenv("WHATSAPP_TOKEN")               # must set in Railway
-PHONE_NUMBER_ID = os.getenv("PHONE_NUMBER_ID")     
-
-
+# Check env vars on startup
+if not WHATSAPP_TOKEN:
+    print("WARNING: WHATSAPP_TOKEN not set!")
+if not PHONE_NUMBER_ID:
+    print("WARNING: PHONE_NUMBER_ID not set!")
 
 @app.get("/")
-def home():
+def health_check():
+    """
+    Health check route to confirm the app is running
+    """
     return {"status": "running"}
 
 @app.get("/webhook")
 def verify_webhook(request: Request):
+    """
+    Verify webhook for WhatsApp
+    """
     params = request.query_params
-    if params.get("hub.mode") == "subscribe" and params.get("hub.verify_token") == VERIFY_TOKEN:
-        return int(params.get("hub.challenge"))
-    return "Invalid token"
+    mode = params.get("hub.mode")
+    token = params.get("hub.verify_token")
+    challenge = params.get("hub.challenge")
+
+    if mode == "subscribe" and token == VERIFY_TOKEN:
+        # Return challenge without int() to avoid type errors
+        return challenge or "0"
+    return {"status": "failed", "reason": "Invalid verify token"}
 
 @app.post("/webhook")
 async def receive_webhook(request: Request):
-    data = await request.json()
-
-    try:
-        message = data["entry"][0]["changes"][0]["value"]["messages"][0]
-        sender = message["from"]
-        text = message["text"]["body"]
-
-        send_reply(text, sender)
-
-    except Exception as e:
-        print("Error:", e)
-
-    return {"status": "success"}
-
-def send_reply(text, sender):
-    url = f"https://graph.facebook.com/v20.0/{PHONE_NUMBER_ID}/messages"
-
-    payload = {
-        "messaging_product": "whatsapp",
-        "to": sender,
-        "text": {"body": f"AI Reply: You said — {text}"}
-    }
-
-    headers = {
-        "Authorization": f"Bearer {WHATSAPP_TOKEN}",
-        "Content-Type": "application/json"
-    }
-
-    r = requests.post(url, json=payload, headers=headers)
-    print("Response:", r.text)
-
-
+    """
+    Receive incoming WhatsApp messages and reply
+    """
