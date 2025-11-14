@@ -11,10 +11,13 @@ import os
 
 app = FastAPI()
 
-# Load env variables (change as needed)
-VERIFY_TOKEN = os.getenv("VERIFY_TOKEN", "myverifytoken")
-WHATSAPP_TOKEN = os.getenv("EAAgnK1JElHcBP2NQHQ0vZCiPXdKULk8fSAUCWZCmbE6yZCzp8bgLuRvDkcDH43NOkhNJ9WZCvlROh1q6ZCQsAWMjeDhKK3BVdvq8Tb4rnprXeek6cQcGZCLZBWvy0NXcn80kLrMHKIycnoP3q10D5BGRuCTuv2HgPkZAb2nPxv49rSb0vz9UyOZA4aAFr1ukQSoGCXz8oOB3uXtyscqtt8mwIYOyAVZB2fBPZBNMKxrtHiVZAndopQZDZD")
-PHONE_NUMBER_ID = os.getenv("792017460671468")
+
+
+VERIFY_TOKEN = os.getenv("VERIFY_TOKEN", "myverifytoken")  # fallback if not set
+WHATSAPP_TOKEN = os.getenv("WHATSAPP_TOKEN")               # must set in Railway
+PHONE_NUMBER_ID = os.getenv("PHONE_NUMBER_ID")     
+
+
 
 @app.get("/")
 def home():
@@ -59,4 +62,5 @@ def send_reply(text, sender):
 
     r = requests.post(url, json=payload, headers=headers)
     print("Response:", r.text)
+
 
